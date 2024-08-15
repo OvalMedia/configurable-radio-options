@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <referenceBlock name="product.info.options.configurable">
+        <!--
+            Due to a magento bug (https://github.com/magento/magento2/issues/4400) this is not working.
+        -->
+        <!--referenceBlock name="product.info.options.configurable">
             <action method="setTemplate">
                 <argument name="template" xsi:type="string">OM_ConfigurableRadioOptions::product/view/type/options/configurable.phtml</argument>
             </action>
-        </referenceBlock>
+        </referenceBlock-->
     </body>
 </page>

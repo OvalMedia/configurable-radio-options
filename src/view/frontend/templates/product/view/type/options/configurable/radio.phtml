@@ -1,0 +1,110 @@
+<?php
+
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+use Magento\Catalog\Model\Product;
+use Magento\ConfigurableProduct\Block\Product\View\Type\Configurable;
+use OM\ConfigurableRadioOptions\ViewModel\Radio;
+
+/** @var Escaper $escaper */
+/** @var Configurable $block */
+/** @var Radio $radio */
+/** @var Product $child */
+$product = $block->getProduct();
+$radio = $viewModels->require(Radio::class);
+$children = $radio->getAllowProducts($block->getProduct());
+$attributes = $block->getAllowAttributes();
+$attributeCodes = $radio->getAllConfigurableAttributeCodes($attributes);
+?>
+<?php if (count($attributes)) :?>
+    <ol x-data="radioOptions()">
+        <?php foreach ($children as $child): ?>
+            <?php
+            $disabled = !$child->isSaleable();
+            $attributeData = $radio->getProductAttributeValues($child, $attributes);
+            $image = $radio->getImage($child, null, ['class' => 'mix-blend-multiply'])
+                ->setTemplate('OM_ConfigurableRadioOptions::image.phtml')
+                ->setProductId($child->getId());
+            ?>
+            <li class="<?= $disabled ?> flex w-full relative border rounded-md p-4 mb-4 hover:shadow
+                <?php if ($disabled): ?>
+                    cursor-not-allowed opacity-50
+                <?php else: ?>
+                    cursor-pointer
+                <?php endif ?>"
+                <?php if ($disabled): ?>data-disabled<?php endif ?>
+                <?php if ($child->isSaleable()): ?>
+                    data-json='<?= $radio->getProductAttributeValuesJson($child, $attributes)?>'
+                <?php endif ?>
+                @click="selectOption($event)">
+                <div class="flex flex-none mr-5 items-center">
+                    <div data-bullet class="radio w-4 h-4 rounded-full border border-gray-500"></div>
+                </div>
+
+                <div class="mr-5">
+                    <?= $image->toHtml(); ?>
+                </div>
+
+                <div class="flex-1">
+                    <p><strong><?= $child->getName() ?></strong></p>
+                    <p class="text-sm"><?= $radio->getProductAttributeValuesString($child, $attributeCodes) ?></p>
+                    <?= $block->getProductPriceHtml($child, \Magento\Catalog\Pricing\Price\FinalPrice::PRICE_CODE) ?>
+                </div>
+            </li>
+        <?php endforeach; ?>
+    </ol>
+    <?php foreach ($attributes as $attribute): ?>
+        <input
+                type="hidden"
+                name="super_attribute[<?= $escaper->escapeHtmlAttr($attribute->getAttributeId()) ?>]"
+                id="attribute<?= $escaper->escapeHtmlAttr($attribute->getAttributeId()) ?>"
+                value="" />
+    <?php endforeach; ?>
+    <script>
+        function radioOptions() {
+            "use strict";
+
+            return {
+                items: [],
+                activeClasses: ['outline', 'outline-2', 'bg-[#2563eb]', 'border-2', 'border-white', 'outline-[#2563eb]'],
+                init: function() {
+                    this.items = this.$el.querySelectorAll('li');
+                },
+
+                selectOption: function($event) {
+                    let element = $event.currentTarget;
+
+                    if (element.hasAttribute('data-disabled')) {
+                        return false;
+                    }
+
+                    let attributes = JSON.parse(element.dataset.json);
+
+                    Object.entries(attributes).forEach(([attribute_id, option_id]) => {
+                        document.getElementById('attribute' + attribute_id).value = option_id;
+                    });
+
+                    this.resetActive();
+                    this.setActive(element.querySelector('[data-bullet]'));
+                    element.classList.add('shadow');
+                },
+
+                setActive: function(bullet) {
+                    bullet.classList.remove('border-gray-500');
+                    bullet.classList.add(...this.activeClasses);
+                },
+
+                resetActive: function() {
+                    this.items.forEach(li => {
+                        let bullet = li.querySelector('[data-bullet]');
+                        li.classList.remove('shadow');
+                        bullet.classList.remove(...this.activeClasses);
+                        bullet.classList.add('border-gray-500');
+                    });
+                }
+            }
+        }
+    </script>
+<?php endif ?>
